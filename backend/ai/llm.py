@@ -12,7 +12,7 @@ load_dotenv()
 log = logging.getLogger("infraquest.llm")
 
 MODEL = os.getenv("INFRAQUEST_MODEL", "claude-opus-5-5")
-OPENAI_MODEL = os.getenv("INFRAQUEST_OPENAI_MODEL", "gpt-4o")
+OPENAI_MODEL = os.getenv("INFRAQUEST_OPENAI_MODEL", "gpt-5-mini")
 FALLBACK_MODELS = {"claude-opus-5-5", "claude-opus-5", "claude-fable-5-1", "claude-sonnet-5-5"}
 
 
@@ -54,11 +54,13 @@ def _call_openai(client, *, system: str, user_text: str, schema: dict, max_token
     sys_prompt = (system + "\n\n반드시 아래 JSON 스키마에 맞는 JSON 객체 하나만 출력하세요. 설명 문장이나 코드블록 없이 JSON만 출력합니다.\n"
                   + json.dumps(schema, ensure_ascii=False))
     try:
+        extra = {"reasoning_effort": "low"} if OPENAI_MODEL.startswith(("gpt-5", "o1", "o3", "o4")) else {}  # 생각하는 모델은 빠르게
         resp = client.chat.completions.create(
             model=OPENAI_MODEL,
-            max_completion_tokens=min(max_tokens, 8000),
+            max_completion_tokens=min(max_tokens, 12000),
             response_format={"type": "json_object"},
             messages=[{"role": "system", "content": sys_prompt}, {"role": "user", "content": user_text}],
+            **extra,
         )
     except openai.AuthenticationError:
         raise AIError("API 키가 올바르지 않아요. 서버에 넣은 OPENAI_API_KEY(또는 ANTHROPIC_API_KEY)를 확인해 주세요.", 502)
