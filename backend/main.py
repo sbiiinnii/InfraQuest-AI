@@ -230,27 +230,29 @@ def request_hint(sid: str):
         return view(sid, s)
 
 
-# 임시 진단용(원인을 찾으면 지워요): 키 값은 절대 내보내지 않고 '형태'와 Anthropic의 응답 종류만 알려 줍니다.
+# 임시 진단용(원인을 찾으면 지워요): 키 값은 절대 내보내지 않고 '형태'와 응답 종류만 알려 줍니다.
 @app.get("/api/_diag/ai")
 def diag_ai():
-    import anthropic
+    import openai as _openai
 
-    raw = os.getenv("ANTHROPIC_API_KEY", "")
-    key = raw.strip().strip("\"'")
+    from ai import llm
+
+    key = llm._clean_key()
     info = {
-        "has_key": bool(raw),
-        "length": len(raw),
-        "length_after_trim": len(key),
+        "provider": llm.provider(),
+        "has_key": bool(key),
+        "length": len(key),
         "starts_with_sk_ant": key.startswith("sk-ant-"),
         "has_inner_whitespace": any(c.isspace() for c in key),
-        "has_non_ascii": any(ord(c) > 127 for c in key),
-        "base_url_env_set": bool(os.getenv("ANTHROPIC_BASE_URL")),
-        "auth_token_env_set": bool(os.getenv("ANTHROPIC_AUTH_TOKEN")),
+        "openai_model_setting": llm.OPENAI_MODEL,
     }
-    try:
-        anthropic.Anthropic(api_key=key, timeout=20.0, max_retries=0).models.list(limit=1)
-        info["anthropic_check"] = "ok"
-    except Exception as e:  # noqa: BLE001 - 진단용이라 종류만 기록
-        info["anthropic_check"] = type(e).__name__
-        info["status_code"] = getattr(e, "status_code", None)
+    if info["provider"] == "openai":
+        try:
+            ids = sorted(m.id for m in _openai.OpenAI(api_key=key, timeout=20.0, max_retries=0).models.list())
+            info["check"] = "ok"
+            info["chosen_model_available"] = llm.OPENAI_MODEL in ids
+            info["gpt_models_sample"] = [i for i in ids if i.startswith(("gpt-5", "gpt-4.1", "gpt-4o"))][:25]
+        except Exception as e:  # noqa: BLE001 - 진단용이라 종류만 기록
+            info["check"] = type(e).__name__
+            info["status_code"] = getattr(e, "status_code", None)
     return info
