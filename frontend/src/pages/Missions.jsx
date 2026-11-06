@@ -2,6 +2,7 @@ import { CheckCircle2, Clock, Lock, Play, RotateCcw, Signal } from 'lucide-react
 import SiteHeader from '../components/SiteHeader'
 import { useMissions } from '../hooks/useMissions'
 import { hasSession, loadProgress } from '../lib/progress'
+import { missionXp } from '../lib/growth'
 
 function MissionCard({ m, record }) {
   const available = m.status === 'available'
@@ -49,7 +50,7 @@ function MissionCard({ m, record }) {
 
       {completed && (
         <p className="mt-3 text-xs text-slate-500">
-          {new Date(record.completedAt).toLocaleDateString('ko-KR')} 완료 · 명령어 {record.commands}개
+          {new Date(record.completedAt).toLocaleDateString('ko-KR')} 완료 · 명령어 {record.commands}개 · +{missionXp(record)} XP
           {record.reviewed ? ' · AI 리뷰 받음' : ''}
           {record.solutionViewed ? ' · 해설 보고 푼 미션' : ''}
         </p>

@@ -1,0 +1,17 @@
+# Render(백엔드 호스팅) 설정. 비밀값은 여기에 적지 않고 Render 화면에서 직접 넣어요.
+services:
+  - type: web
+    name: infraquest-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/missions
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: INFRAQUEST_ALLOWED_ORIGINS
+        sync: false

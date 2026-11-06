@@ -1,7 +1,8 @@
 import { CheckCircle2, Loader2, PartyPopper } from 'lucide-react'
 import NextMissionCard from './NextMissionCard'
+import { GrowthGain } from './GrowthCard'
 
-export default function SuccessModal({ progress, hasReview, reviewing, reviewError, onReview, onClose, onReset, recommendation }) {
+export default function SuccessModal({ progress, hasReview, reviewing, reviewError, onReview, onClose, onReset, recommendation, xpBefore = 0 }) {
   const v = progress.verification
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
@@ -75,6 +76,7 @@ export default function SuccessModal({ progress, hasReview, reviewing, reviewErr
         </dl>
 
         <div className="flex flex-col gap-4">
+          <GrowthGain xpBefore={xpBefore} />
           <NextMissionCard recommendation={recommendation} onRetry={onReset} mascot />
         <div className="grid gap-2">
           <button

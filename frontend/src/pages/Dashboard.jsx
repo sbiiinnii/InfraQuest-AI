@@ -1,4 +1,5 @@
 import { Bot, ChevronRight, Lock, Network, ServerCrash, ShieldAlert, Terminal, Wrench } from 'lucide-react'
+import GrowthCard from '../components/GrowthCard'
 import Mascot from '../components/Mascot'
 import SiteHeader from '../components/SiteHeader'
 import { useMissions } from '../hooks/useMissions'
@@ -48,6 +49,7 @@ export default function Dashboard() {
           <p className="mt-3 text-xs text-slate-500">
             모든 서버와 명령어 결과는 가상(시뮬레이션)이라 실제 서버에는 영향이 없어요.
           </p>
+          <GrowthCard />
         </section>
 
         <section className="grid gap-4 md:grid-cols-3">

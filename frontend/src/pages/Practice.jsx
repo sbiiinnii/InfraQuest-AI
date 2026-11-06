@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ArrowLeft, History, Info, Loader2, RotateCcw, ShieldAlert } from 'lucide-react'
 import { api } from '../lib/api'
 import { completedIds, recordCompletion } from '../lib/progress'
+import { totalXp } from '../lib/growth'
 import InfraMap from '../components/InfraMap'
 import Terminal from '../components/Terminal'
 import SidePanel from '../components/SidePanel'
@@ -17,6 +18,7 @@ export default function Practice({ missionId }) {
   const [server, setServer] = useState('WEB')
   const [busy, setBusy] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [xpBefore, setXpBefore] = useState(0) // 이번 미션을 끝내기 전의 경험치 (얼마나 올랐는지 보여 주려고)
   const [termError, setTermError] = useState('')
   const [showReview, setShowReview] = useState(false)
   const [reviewing, setReviewing] = useState(false)
@@ -59,6 +61,8 @@ export default function Practice({ missionId }) {
         commands: data.progress.commands_total,
         reviewed: !!data.review,
         solutionViewed: !!data.solution,
+        hints: data.hints?.length ?? 0,
+        risky: (data.progress.risky_actions?.length ?? 0) > 0,
       })
     }
   }, [data, missionId])
@@ -84,7 +88,9 @@ export default function Practice({ missionId }) {
     setTermError('')
     try {
       const wasDone = data.progress.completed
+      const before = totalXp()
       const d = await api.run(data.sid, server, command)
+      if (!wasDone && d.progress.completed) setXpBefore(before)
       setData(d)
       if (!wasDone && d.progress.completed) setShowSuccess(true)
     } catch (e) {
@@ -323,6 +329,7 @@ export default function Practice({ missionId }) {
           onClose={() => setShowSuccess(false)}
           onReset={reset}
           recommendation={recommendation}
+          xpBefore={xpBefore}
         />
       )}
       {showReview && data.review && (

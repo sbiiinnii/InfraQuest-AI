@@ -1,8 +1,10 @@
 import logging
+import os
 import threading
 import uuid
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from ai.hint import MAX_HINTS, build_hint_context, generate_hint
@@ -15,6 +17,12 @@ from scenarios import COMING_SOON, MISSIONS
 logging.basicConfig(level=logging.WARNING, format="%(name)s: %(message)s")  # AI 검사 거절 사유가 서버 화면에 보이도록
 
 app = FastAPI(title="InfraQuest AI")
+
+# 배포 때 화면(Vercel)과 백엔드 주소가 달라서 필요한 허용 목록입니다.
+# INFRAQUEST_ALLOWED_ORIGINS 에 화면 주소를 쉼표로 적어요. (예: https://infraquest.vercel.app) 비워 두면 다른 주소의 접근은 허용하지 않아요.
+_origins = [o.strip().rstrip("/") for o in os.getenv("INFRAQUEST_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+if _origins:
+    app.add_middleware(CORSMiddleware, allow_origins=_origins, allow_methods=["GET", "POST"], allow_headers=["Content-Type"])
 
 SESSIONS: dict[str, Session] = {}
 LOCK = threading.Lock()  # 같은 세션에 요청이 동시에 들어와도 상태가 꼬이지 않게 함

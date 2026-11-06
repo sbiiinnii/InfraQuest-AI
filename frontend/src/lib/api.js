@@ -1,7 +1,10 @@
+// 배포할 때는 VITE_API_BASE 에 백엔드 주소(예: https://xxx.onrender.com)를 넣어요. 비워 두면 같은 주소의 /api 를 써요. (내 컴퓨터 개발용)
+const BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/+$/, '')
+
 async function req(path, options = {}) {
   let res
   try {
-    res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...options })
+    res = await fetch(BASE + path, { headers: { 'Content-Type': 'application/json' }, ...options })
   } catch {
     const err = new Error('백엔드 서버에 연결할 수 없어요. 서버가 켜져 있는지 확인해 주세요.')
     err.status = 0

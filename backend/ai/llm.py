@@ -23,6 +23,10 @@ class AIError(Exception):
 
 
 def make_client() -> anthropic.Anthropic:
+    # 호스팅 설정 화면에 키를 넣을 때 끝에 줄바꿈·공백이 같이 들어가는 경우가 있어서 지워 줘요.
+    key = os.getenv("ANTHROPIC_API_KEY", "").strip().strip("\"'")
+    if key:
+        os.environ["ANTHROPIC_API_KEY"] = key
     if not os.getenv("ANTHROPIC_API_KEY"):
         raise AIError("AI 기능을 쓰려면 API 키 설정이 필요해요. backend 폴더의 .env 파일에 ANTHROPIC_API_KEY를 넣고 "
                       "백엔드를 다시 실행해 주세요.", 503)

@@ -11,7 +11,7 @@ export function loadProgress() {
 }
 
 // 미션을 정상화(복구 + 검증)했을 때 한 번 기록합니다. 이미 있으면 완료 시각은 유지해요.
-export function recordCompletion(missionId, { commands, reviewed, solutionViewed }) {
+export function recordCompletion(missionId, { commands, reviewed, solutionViewed, hints, risky }) {
   const all = loadProgress()
   const prev = all[missionId]
   all[missionId] = {
@@ -19,6 +19,9 @@ export function recordCompletion(missionId, { commands, reviewed, solutionViewed
     commands,
     reviewed: !!(reviewed || prev?.reviewed),
     solutionViewed: !!(solutionViewed || prev?.solutionViewed), // 정답 해설을 보고 푼 미션
+    // 육성(경험치·뱃지)용. 한 번 늘어난 힌트 수와 위험 조치 기록은 다시 풀어도 줄어들지 않아요.
+    hints: Math.max(hints ?? 0, prev?.hints ?? 0),
+    risky: !!(risky || prev?.risky),
   }
   localStorage.setItem(KEY, JSON.stringify(all))
 }
