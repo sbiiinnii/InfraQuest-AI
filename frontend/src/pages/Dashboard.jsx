@@ -1,8 +1,10 @@
 import { Bot, ChevronRight, Lock, Network, ServerCrash, ShieldAlert, Terminal, Wrench } from 'lucide-react'
+import DataNotice from '../components/DataNotice'
 import GrowthCard from '../components/GrowthCard'
 import Mascot from '../components/Mascot'
 import SiteHeader from '../components/SiteHeader'
 import { useMissions } from '../hooks/useMissions'
+import { WAKING_TEXT, useSlow } from '../hooks/useSlow'
 import { loadProgress } from '../lib/progress'
 
 const CATEGORIES = [
@@ -19,6 +21,7 @@ const STEPS = [
 
 export default function Dashboard() {
   const { missions, error, reload } = useMissions()
+  const slow = useSlow(!missions && !error)
   const done = Object.keys(loadProgress())
   const available = missions?.filter((m) => m.status === 'available') ?? []
   const soon = missions?.filter((m) => m.status === 'coming_soon') ?? []
@@ -72,7 +75,9 @@ export default function Dashboard() {
               </button>
             </p>
           ) : !missions ? (
-            <p className="text-sm text-slate-500">불러오는 중...</p>
+            <p className="text-sm text-slate-500">
+              불러오는 중...{slow && <span className="ml-2 text-amber-300">{WAKING_TEXT}</span>}
+            </p>
           ) : (
             <div className="flex flex-wrap items-end gap-x-10 gap-y-3">
               <div>
@@ -89,6 +94,10 @@ export default function Dashboard() {
               <p className="text-xs text-slate-500">학습 기록은 이 브라우저에만 저장돼요.</p>
             </div>
           )}
+        </section>
+
+        <section className="mt-6">
+          <DataNotice />
         </section>
 
         <section className="mt-10">

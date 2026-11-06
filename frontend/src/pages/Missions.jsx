@@ -1,6 +1,7 @@
 import { CheckCircle2, Clock, Lock, Play, RotateCcw, Signal } from 'lucide-react'
 import SiteHeader from '../components/SiteHeader'
 import { useMissions } from '../hooks/useMissions'
+import { WAKING_TEXT, useSlow } from '../hooks/useSlow'
 import { hasSession, loadProgress } from '../lib/progress'
 import { missionXp } from '../lib/growth'
 
@@ -77,6 +78,7 @@ function MissionCard({ m, record }) {
 
 export default function Missions() {
   const { missions, error, reload } = useMissions()
+  const slow = useSlow(!missions && !error)
   const progress = loadProgress()
 
   return (
@@ -95,7 +97,9 @@ export default function Missions() {
             </button>
           </div>
         ) : !missions ? (
-          <p className="text-slate-500">불러오는 중...</p>
+          <p className="text-slate-500">
+            불러오는 중...{slow && <span className="ml-2 text-amber-300">{WAKING_TEXT}</span>}
+          </p>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {missions.map((m) => (

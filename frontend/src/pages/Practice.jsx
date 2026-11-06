@@ -3,6 +3,9 @@ import { ArrowLeft, History, Info, Loader2, RotateCcw, ShieldAlert } from 'lucid
 import { api } from '../lib/api'
 import { completedIds, recordCompletion } from '../lib/progress'
 import { totalXp } from '../lib/growth'
+import DataNotice from '../components/DataNotice'
+import DemoGuide from '../components/DemoGuide'
+import { WAKING_TEXT, useSlow } from '../hooks/useSlow'
 import InfraMap from '../components/InfraMap'
 import Terminal from '../components/Terminal'
 import SidePanel from '../components/SidePanel'
@@ -12,6 +15,20 @@ import ReviewModal from '../components/ReviewModal'
 
 const KEY = (missionId) => `iq_sid_${missionId}`
 
+// 미션 1 시연 가이드의 단계. 사용자가 직접 입력하는 것과 똑같은 명령어를 서버에 보내요.
+const WEB_URL = 'http://192.168.111.100'
+const WAS_URL = 'http://192.168.111.200:8080'
+const DEMO_STEPS = [
+  { label: '① 증상 확인(502)', server: 'WEB', command: `curl ${WEB_URL}` },
+  { label: '② WAS 직접 요청', server: 'WAS', command: `curl ${WAS_URL}` },
+  { label: '③ 서비스 상태', server: 'WAS', command: 'systemctl status tomcat10' },
+  { label: '④ 포트 확인', server: 'WAS', command: 'ss -tulnp' },
+  { label: '⑤ 원인 가설 제출', hypothesis: 'WAS의 Tomcat이 중단되어 8080 포트가 닫혀 있고, Nginx가 연결에 실패해서 502가 발생했다.' },
+  { label: '⑥ 복구', server: 'WAS', command: 'systemctl start tomcat10' },
+  { label: '⑦ 검증: WAS 직접', server: 'WEB', command: `curl ${WAS_URL}` },
+  { label: '⑧ 검증: WEB 경유', server: 'WEB', command: `curl ${WEB_URL}` },
+]
+
 export default function Practice({ missionId }) {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
@@ -19,6 +36,7 @@ export default function Practice({ missionId }) {
   const [busy, setBusy] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [xpBefore, setXpBefore] = useState(0) // 이번 미션을 끝내기 전의 경험치 (얼마나 올랐는지 보여 주려고)
+  const slow = useSlow(!data && !error)
   const [termError, setTermError] = useState('')
   const [showReview, setShowReview] = useState(false)
   const [reviewing, setReviewing] = useState(false)
@@ -83,21 +101,39 @@ export default function Practice({ missionId }) {
     }
   }, [completedNow, sid, commandsTotal])
 
-  async function runCommand(command) {
+  async function runCommand(command, srv = server) {
     setBusy(true)
     setTermError('')
     try {
       const wasDone = data.progress.completed
       const before = totalXp()
-      const d = await api.run(data.sid, server, command)
+      const d = await api.run(data.sid, srv, command)
       if (!wasDone && d.progress.completed) setXpBefore(before)
       setData(d)
       if (!wasDone && d.progress.completed) setShowSuccess(true)
+      return true
     } catch (e) {
       setTermError(e.message)
+      return false
     } finally {
       setBusy(false)
     }
+  }
+
+  // 시연 가이드 한 단계 실행: 서버를 고르고 명령어를 보내거나, 가설을 제출해요.
+  async function runDemoStep(step) {
+    setTermError('')
+    if (step.hypothesis) {
+      try {
+        await submitHypothesis(step.hypothesis)
+        return true
+      } catch (e) {
+        setTermError(e.message)
+        return false
+      }
+    }
+    setServer(step.server)
+    return runCommand(step.command, step.server)
   }
 
   async function submitHypothesis(text) {
@@ -178,8 +214,11 @@ export default function Practice({ missionId }) {
   }
   if (!data) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-slate-400">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> 실습 환경을 준비하는 중...
+      <div className="flex min-h-screen flex-col items-center justify-center gap-2 text-slate-400">
+        <div className="flex items-center">
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" /> 실습 환경을 준비하는 중...
+        </div>
+        {slow && <p className="text-sm text-amber-300">{WAKING_TEXT}</p>}
       </div>
     )
   }
@@ -243,10 +282,16 @@ export default function Practice({ missionId }) {
         </div>
       </header>
 
-      <div className="border-b border-amber-500/20 bg-amber-500/10 px-4 py-1.5 text-center text-xs text-amber-200">
-        <ShieldAlert className="mr-1 inline h-3.5 w-3.5" />
-        시뮬레이션 환경입니다. 모든 서버와 명령어 결과는 가상이며, 실제 서버에는 아무 영향이 없어요.
-      </div>
+      <details className="border-b border-amber-500/20 bg-amber-500/10 px-4 py-1.5 text-center text-xs text-amber-200">
+        <summary className="cursor-pointer list-none">
+          <ShieldAlert className="mr-1 inline h-3.5 w-3.5" />
+          시뮬레이션 환경입니다. 모든 서버와 명령어 결과는 가상이며, 실제 서버에는 아무 영향이 없어요.{' '}
+          <span className="underline">무엇이 가상이고 실제인가요?</span>
+        </summary>
+        <div className="mx-auto mt-2 max-w-4xl">
+          <DataNotice />
+        </div>
+      </details>
 
       {/* 넓은 화면: 왼쪽(서버 카드)·오른쪽(상황/가설)은 두 줄에 걸쳐 길게, 가운데는 위에 터미널·아래에 힌트를 둬서
           어느 열도 비어 보이지 않게 해요. 좁은 화면(모바일)은 위에서 아래로: 서버 → 터미널 → 상황·가설 → 힌트 순서예요. */}
@@ -265,6 +310,8 @@ export default function Practice({ missionId }) {
             onRun={runCommand}
           />
           {termError && <p className="text-sm text-red-400">{termError}</p>}
+
+          {missionId === 'mission01' && !completed && <DemoGuide steps={DEMO_STEPS} busy={busy} onRunStep={runDemoStep} />}
 
           <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
             <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-300">
