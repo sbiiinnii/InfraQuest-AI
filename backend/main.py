@@ -228,3 +228,29 @@ def request_hint(sid: str):
             raise HTTPException(409, "힌트를 만드는 사이에 실습이 초기화됐어요. 다시 요청해 주세요.")
         s.add_hint(level, text)  # 성공한 힌트만 횟수에 포함됩니다
         return view(sid, s)
+
+
+# 임시 진단용(원인을 찾으면 지워요): 키 값은 절대 내보내지 않고 '형태'와 Anthropic의 응답 종류만 알려 줍니다.
+@app.get("/api/_diag/ai")
+def diag_ai():
+    import anthropic
+
+    raw = os.getenv("ANTHROPIC_API_KEY", "")
+    key = raw.strip().strip("\"'")
+    info = {
+        "has_key": bool(raw),
+        "length": len(raw),
+        "length_after_trim": len(key),
+        "starts_with_sk_ant": key.startswith("sk-ant-"),
+        "has_inner_whitespace": any(c.isspace() for c in key),
+        "has_non_ascii": any(ord(c) > 127 for c in key),
+        "base_url_env_set": bool(os.getenv("ANTHROPIC_BASE_URL")),
+        "auth_token_env_set": bool(os.getenv("ANTHROPIC_AUTH_TOKEN")),
+    }
+    try:
+        anthropic.Anthropic(api_key=key, timeout=20.0, max_retries=0).models.list(limit=1)
+        info["anthropic_check"] = "ok"
+    except Exception as e:  # noqa: BLE001 - 진단용이라 종류만 기록
+        info["anthropic_check"] = type(e).__name__
+        info["status_code"] = getattr(e, "status_code", None)
+    return info
